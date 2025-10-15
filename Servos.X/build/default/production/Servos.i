@@ -2402,11 +2402,6 @@ Start:
     MOVWF TRISB ;Enable Outputs
     MOVLW 0x00 ;Move (0000|0000) to w
     MOVWF TRISC ;Enable Outputs
-
-    MOVLW 0x02 ;move (0100|0010) to w
-    MOVWF PIE1 ;Enable TMR2 interupt flag, and ADC interupt flag
-    MOVLW 0xFF ;move (1111|1111) to w
-    MOVWF PR2 ;Set count so that TMR2 compares itself too at max, 0xFF
     ;---------------
     ;BANK 0
     BCF STATUS,5 ;Set ((STATUS) and 07Fh), 5 to 0
@@ -2425,6 +2420,13 @@ Start:
     MOVLW 0x00 ;Move (0000|0000) to w
     MOVWF PORTC ;Set PORTC to all 0 at start up
 
+    W_SAVE EQU 0x20 ;General Purpouse register for saving values during interrupt
+    STAT_SAVE EQU 0x21 ;General Purpouse register for saving values during interrupt
+    ADC_SAVE EQU 0x22 ;General purpouse register for
+    TIME EQU 0x23
+
+;-------------------------------------------------------------------------------
+   TIMER2_SETUP:
     MOVLW 0x00 ;move (0000|0000) to w
     MOVWF PIR1 ;Set TMR2 flag to 0 at set up
 
@@ -2434,13 +2436,23 @@ Start:
     MOVLW 0x00 ;move (0000|0000) to w
     MOVWF T2CON ;Keep TMR2 off until ready
 
+    BSF STATUS,5 ;Set ((STATUS) and 07Fh), 5 to 1
+    BCF STATUS,6 ;Set ((STATUS) and 07Fh), 6 to 0
+
+    MOVLW 0x02 ;move (0000|0010) to w
+    MOVWF PIE1 ;Enable TMR2 interupt flag
+
+    MOVLW 0xFF ;move (1111|1111) to w
+    MOVWF PR2 ;Set count so that TMR2 compares itself too at max, 0xFF
+
     MOVLW 0xC0 ;move (1010|0000) to w
     MOVWF INTCON ;Eable Global and Pereperial interupts
 
-    W_SAVE EQU 0x20 ;General Purpouse register for saving values during interrupt
-    STAT_SAVE EQU 0x21 ;General Purpouse register for saving values during interrupt
-    COMP_SAVE EQU 0x22 ;General purpouse register for
+    BCF STATUS,5 ;Set ((STATUS) and 07Fh), 5 to 0
+    BCF STATUS,6 ;Set ((STATUS) and 07Fh), 6 to 0
 
+    MOVLW 0x26 ;move (0000|0000) to w
+    MOVWF T2CON ;Keep TMR2 off until ready
 ;-------------------------------------------------------------------------------
     MAIN:
     BSF ADCON0,0
@@ -2454,6 +2466,31 @@ Start:
     MOVF STATUS,0 ;Move Status to w
     MOVWF STAT_SAVE ;Move w to Stat_Save
 
+    BCF PIR1,1
+
+    BTFSC ADRESH,3
+    CALL BIT_3
+
+    BTFSC ADRESH,4
+    CALL BIT_4
+
+    BTFSC ADRESH,5
+    CALL BIT_5
+
+    BTFSC ADRESH,6
+    CALL BIT_6
+
+    BTFSC ADRESH,7
+    CALL BIT_7
+
+    MOVF ADC_SAVE,0
+    GOTO POSITION
+
+    INT_END:
+    BCF PORTB,0
+    MOVLW 0x00
+    MOVWF ADC_SAVE
+
     MOVF STAT_SAVE,0 ;Move STAT_SAVE to w
     MOVWF STATUS ;Move w to STATUS
     MOVF W_SAVE,0 ;Move w_SAVE to w
@@ -2461,5 +2498,202 @@ Start:
     RETFIE ;Return from interupt, renable Global interrupts
 ;-------------------------------------------------------------------------------
 
+    BIT_3:
+    MOVLW 1 ;Decimal 8
+    ADDWF ADC_SAVE
+    RETURN
+
+    BIT_4:
+    MOVLW 2 ;Decimal 16
+    ADDWF ADC_SAVE
+    RETURN
+
+    BIT_5:
+    MOVLW 4 ;Decimal 32
+    ADDWF ADC_SAVE
+    RETURN
+
+    BIT_6:
+    MOVLW 8 ;Decimal 64
+    ADDWF ADC_SAVE
+    RETURN
+
+    BIT_7:
+    MOVLW 16
+    ADDWF ADC_SAVE
+    RETURN
+
+    POSITION:
+    ADDWF PCL,1 ;ADD working register to program counter
+    GOTO P1 ;0
+    GOTO P2 ;1
+    GOTO P2 ;2
+    GOTO P3 ;3
+    GOTO P4 ;4
+    GOTO P4 ;5
+    GOTO P5 ;6
+    GOTO P6 ;7
+    GOTO P6 ;8
+    GOTO P7 ;9
+    GOTO P8 ;10
+    GOTO P8 ;11
+    GOTO P9 ;12
+    GOTO P10 ;13
+    GOTO P10 ;14
+    GOTO P11 ;15
+    GOTO P12 ;16
+    GOTO P12 ;17
+    GOTO P13 ;18
+    GOTO P14 ;19
+    GOTO P14 ;20
+    GOTO P15 ;21
+    GOTO P16 ;22
+    GOTO P16 ;23
+    GOTO P17 ;24
+    GOTO P18 ;25
+    GOTO P18 ;26
+    GOTO P19 ;27
+    GOTO P20 ;28
+    GOTO P20 ;29
+    GOTO P21 ;30
+    GOTO P21 ;31
+
+    P1:
+    MOVLW 0x32 ;Decimal 50
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P2:
+    MOVLW 0x3C ;Decimal 60
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P3:
+    MOVLW 0x46 ;Decimal 70
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P4:
+    MOVLW 0x50 ;Decimal 80
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P5:
+    MOVLW 0x5A ;Decimal 90
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P6:
+    MOVLW 0x64 ;Decimal 100
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P7:
+    MOVLW 0x6E ;Decimal 110
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P8:
+    MOVLW 0x78 ;Decimal 120
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P9:
+    MOVLW 0x82 ;Decimal 130
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P10:
+    MOVLW 0x8C ;Decimal 140
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P11:
+    MOVLW 0x96 ;Decimal 150
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P12:
+    MOVLW 0xA0 ;Decimal 160
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P13:
+    MOVLW 0xAA ;Decimal 170
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P14:
+    MOVLW 0xB4 ;Decimal 180
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P15:
+    MOVLW 0xBE ;Decmial 190
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P16:
+    MOVLW 0xC8 ;Decmial 200
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P17:
+    MOVLW 0xD2 ;Decimal 210
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P18:
+    MOVLW 0xDC ;Decimal 220
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P19:
+    MOVLW 0xE6 ;Decimal 230
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P20:
+    MOVLW 0xF2 ;Decimal 242
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    P21:
+    MOVLW 0xFF ;Decimal 255
+    MOVWF TIME
+    BSF PORTB,0
+    GOTO DELAY
+
+    DELAY:
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    NOP
+    DECFSZ TIME
+    GOTO DELAY
+    GOTO INT_END
 
 END ;End OF Code. This Is Required
