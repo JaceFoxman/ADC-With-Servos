@@ -2422,9 +2422,8 @@ Start:
 
     W_SAVE EQU 0x20 ;General Purpouse register for saving values during interrupt
     STAT_SAVE EQU 0x21 ;General Purpouse register for saving values during interrupt
-    ADC_SAVE EQU 0x22 ;General purpouse register for
-    ADRESH_SAVE EQU 0x23
-    TIME EQU 0x24
+    ADC_SAVE EQU 0x22 ;General purpouse register for adding to Program Counter
+    TIME EQU 0x23 ;General Purpouse register for Pulse Width Delay
 
 ;-------------------------------------------------------------------------------
    TIMER2_SETUP:
@@ -2452,56 +2451,45 @@ Start:
     BCF STATUS,5 ;Set ((STATUS) and 07Fh), 5 to 0
     BCF STATUS,6 ;Set ((STATUS) and 07Fh), 6 to 0
 
-    MOVLW 0x26 ;move (0000|0000) to w
-    MOVWF T2CON ;Keep TMR2 off until ready
+    MOVLW 0x26 ;move (0010|0110) to w
+    MOVWF T2CON ;Set Prescaler to 1:16, Postscaler to 1:5, Turn on TRM2
 ;-------------------------------------------------------------------------------
     MAIN:
-    BSF ADCON0,0
-    BSF ADCON0,1 ;Start ADC
-    MOVF ADRESH,0
-    MOVWF ADRESH_SAVE
-    GOTO MAIN
+    BSF ADCON0,0 ;Enable ADC
+    BSF ADCON0,1 ;Start Conversion
+    MOVF ADRESH,0 ;Take ADC value and move to w
+    MOVWF PORTC ;Display w to PORTC
+    GOTO MAIN ;GOTO line 142
 ;-------------------------------------------------------------------------------
     INTERUPT_HANDLER:
-
     MOVWF W_SAVE ;Move w to w_Save
     MOVF STATUS,0 ;Move Status to w
     MOVWF STAT_SAVE ;Move w to Stat_Save
 
-    BCF PIR1,1
+    BCF PIR1,1 ;Clear TMR2 flag (20ms)
 
-    BTFSC ADRESH_SAVE,0
-    CALL BIT_0
+    BTFSC ADRESH,3 ;Check if ADRESH bit 3 is 1 or 0
+    CALL BIT_3 ;GOTO line 185
 
-    BTFSC ADRESH_SAVE,1
-    CALL BIT_1
+    BTFSC ADRESH,4 ;Check if ADRESH bit 3 is 1 or 0
+    CALL BIT_4 ;GOTO line 190
 
-    BTFSC ADRESH_SAVE,2
-    CALL BIT_2
+    BTFSC ADRESH,5 ;Check if ADRESH bit 3 is 1 or 0
+    CALL BIT_5 ;GOTO line 195
 
-    BTFSC ADRESH_SAVE,3
-    CALL BIT_3
+    BTFSC ADRESH,6 ;Check if ADRESH bit 3 is 1 or 0
+    CALL BIT_6 ;GOTO line 200
 
-    BTFSC ADRESH_SAVE,4
-    CALL BIT_4
+    BTFSC ADRESH,7 ;Check if ADRESH bit 3 is 1 or 0
+    CALL BIT_7 ;GOTO line 205
 
-    BTFSC ADRESH_SAVE,5
-    CALL BIT_5
-
-    BTFSC ADRESH_SAVE,6
-    CALL BIT_6
-
-    BTFSC ADRESH_SAVE,7
-    CALL BIT_7
-
-
-    MOVF ADC_SAVE,0
-    GOTO POSITION
+    MOVF ADC_SAVE,0 ;Move the value of ADRESH bits checked to w
+    GOTO POSITION ;GOTO line
 
     INT_END:
-    BCF PORTC,0
-    MOVLW 0x00
-    MOVWF ADC_SAVE
+    BCF PORTB,0 ;Clear flag to give servo Pulse space for rest of 20ms period
+    MOVLW 0x00 ;Move (0000|0000) to w
+    MOVWF ADC_SAVE ;Clear ADC_SAVE for next check
 
     MOVF STAT_SAVE,0 ;Move STAT_SAVE to w
     MOVWF STATUS ;Move w to STATUS
@@ -2509,440 +2497,202 @@ Start:
 
     RETFIE ;Return from interupt, renable Global interrupts
 ;-------------------------------------------------------------------------------
-    BIT_0:
-    MOVLW 0x01 ;Decmial 1
-    ADDWF ADC_SAVE
-    RETURN
-
-    BIT_1:
-    MOVLW 0x02 ;Decimal 2
-    ADDWF ADC_SAVE
-    RETURN
-
-    BIT_2:
-    MOVLW 0x04 ;Decimal 4
-    ADDWF ADC_SAVE
-    RETURN
-
     BIT_3:
-    MOVLW 0x08 ;Decimal 8
-    ADDWF ADC_SAVE
-    RETURN
+    MOVLW 0x01 ;Decimal 8
+    ADDWF ADC_SAVE ;ADD w to ADC_SAVE
+    RETURN ;Return to line 157
 
     BIT_4:
-    MOVLW 0x10 ;Decimal 16
-    ADDWF ADC_SAVE
-    RETURN
+    MOVLW 0x02 ;Decimal 16
+    ADDWF ADC_SAVE ;ADD w to ADC_SAVE
+    RETURN ;Return to line 160
 
     BIT_5:
-    MOVLW 0x20 ;Decimal 32
-    ADDWF ADC_SAVE
-    RETURN
+    MOVLW 0x04 ;Decimal 32
+    ADDWF ADC_SAVE ;ADD w to ADC_SAVE
+    RETURN ;Return to line 163
 
     BIT_6:
-    MOVLW 0x40 ;Decimal 64
-    ADDWF ADC_SAVE
-    RETURN
+    MOVLW 0x08 ;Decimal 64
+    ADDWF ADC_SAVE ;ADD w to ADC_SAVE
+    RETURN ;Return to line 166
 
     BIT_7:
-    MOVLW 0x80 ;Decimal 128
-    ADDWF ADC_SAVE
-    RETURN
+    MOVLW 0x10 ;Decimal 16
+    ADDWF ADC_SAVE ;ADD w to ADC_SAVE
+    RETURN ;Return to line 169
 
     POSITION:
     ADDWF PCL,1 ;ADD working register to program counter
     GOTO P1 ;0
-    GOTO P1 ;1
-    GOTO P1 ;2
-    GOTO P1 ;3
-    GOTO P1 ;4
-    GOTO P1 ;5
-    GOTO P1 ;6
-    GOTO P1 ;7
-    GOTO P1 ;8
-    GOTO P1 ;9
-    GOTO P1 ;10
-    GOTO P1 ;11
-    GOTO P2 ;12
-    GOTO P2 ;13
-    GOTO P2 ;14
-    GOTO P2 ;15
-    GOTO P2 ;16
-    GOTO P2 ;17
-    GOTO P2 ;18
-    GOTO P2 ;19
-    GOTO P2 ;20
-    GOTO P2 ;21
-    GOTO P2 ;22
-    GOTO P2 ;23
-    GOTO P3 ;24
-    GOTO P3 ;25
-    GOTO P3 ;26
-    GOTO P3 ;27
-    GOTO P3 ;28
-    GOTO P3 ;29
-    GOTO P3 ;30
-    GOTO P3 ;31
-    GOTO P3 ;32
-    GOTO P3 ;33
-    GOTO P3 ;34
-    GOTO P3 ;35
-    GOTO P4 ;36
-    GOTO P4 ;37
-    GOTO P4 ;38
-    GOTO P4 ;39
-    GOTO P4 ;40
-    GOTO P4 ;41
-    GOTO P4 ;42
-    GOTO P4 ;43
-    GOTO P4 ;44
-    GOTO P4 ;45
-    GOTO P4 ;46
-    GOTO P4 ;47
-    GOTO P5 ;48
-    GOTO P5 ;49
-    GOTO P5 ;50
-    GOTO P5 ;51
-    GOTO P5 ;52
-    GOTO P5 ;53
-    GOTO P5 ;54
-    GOTO P5 ;55
-    GOTO P5 ;56
-    GOTO P5 ;57
-    GOTO P5 ;58
-    GOTO P5 ;59
-    GOTO P6 ;60
-    GOTO P6 ;61
-    GOTO P6 ;62
-    GOTO P6 ;62
-    GOTO P6 ;64
-    GOTO P6 ;65
-    GOTO P6 ;66
-    GOTO P6 ;67
-    GOTO P6 ;68
-    GOTO P6 ;69
-    GOTO P6 ;70
-    GOTO P6 ;71
-    GOTO P7 ;72
-    GOTO P7 ;73
-    GOTO P7 ;74
-    GOTO P7 ;75
-    GOTO P7 ;76
-    GOTO P7 ;77
-    GOTO P7 ;78
-    GOTO P7 ;79
-    GOTO P7 ;80
-    GOTO P7 ;81
-    GOTO P7 ;82
-    GOTO P7 ;83
-    GOTO P8 ;84
-    GOTO P8 ;85
-    GOTO P8 ;86
-    GOTO P8 ;87
-    GOTO P8 ;88
-    GOTO P8 ;89
-    GOTO P8 ;90
-    GOTO P8 ;91
-    GOTO P8 ;92
-    GOTO P8 ;93
-    GOTO P8 ;94
-    GOTO P8 ;95
-    GOTO P9 ;96
-    GOTO P9 ;97
-    GOTO P9 ;98
-    GOTO P9 ;99
-    GOTO P9 ;100
-    GOTO P9 ;101
-    GOTO P9 ;102
-    GOTO P9 ;103
-    GOTO P9 ;104
-    GOTO P9 ;105
-    GOTO P9 ;106
-    GOTO P9 ;107
-    GOTO P10 ;108
-    GOTO P10 ;109
-    GOTO P10 ;110
-    GOTO P10 ;111
-    GOTO P10 ;112
-    GOTO P10 ;113
-    GOTO P10 ;114
-    GOTO P10 ;115
-    GOTO P10 ;116
-    GOTO P10 ;117
-    GOTO P10 ;118
-    GOTO P10 ;119
-    GOTO P11 ;120
-    GOTO P11 ;121
-    GOTO P11 ;122
-    GOTO P11 ;123
-    GOTO P11 ;124
-    GOTO P11 ;125
-    GOTO P11 ;126
-    GOTO P11 ;127
-    GOTO P11 ;128
-    GOTO P11 ;129
-    GOTO P11 ;130
-    GOTO P11 ;131
-    GOTO P12 ;132
-    GOTO P12 ;133
-    GOTO P12 ;134
-    GOTO P12 ;135
-    GOTO P12 ;136
-    GOTO P12 ;137
-    GOTO P12 ;138
-    GOTO P12 ;139
-    GOTO P12 ;140
-    GOTO P12 ;141
-    GOTO P12 ;142
-    GOTO P12 ;143
-    GOTO P13 ;144
-    GOTO P13 ;145
-    GOTO P13 ;146
-    GOTO P13 ;147
-    GOTO P13 ;148
-    GOTO P13 ;149
-    GOTO P13 ;150
-    GOTO P13 ;151
-    GOTO P13 ;152
-    GOTO P13 ;153
-    GOTO P13 ;154
-    GOTO P13 ;155
-    GOTO P14 ;156
-    GOTO P14 ;157
-    GOTO P14 ;158
-    GOTO P14 ;159
-    GOTO P14 ;160
-    GOTO P14 ;161
-    GOTO P14 ;162
-    GOTO P14 ;163
-    GOTO P14 ;164
-    GOTO P14 ;165
-    GOTO P14 ;166
-    GOTO P14 ;167
-    GOTO P15 ;168
-    GOTO P15 ;169
-    GOTO P15 ;170
-    GOTO P15 ;171
-    GOTO P15 ;172
-    GOTO P15 ;173
-    GOTO P15 ;174
-    GOTO P15 ;175
-    GOTO P15 ;176
-    GOTO P15 ;178
-    GOTO P15 ;179
-    GOTO P15 ;180
-    GOTO P16 ;181
-    GOTO P16 ;182
-    GOTO P16 ;183
-    GOTO P16 ;184
-    GOTO P16 ;185
-    GOTO P16 ;186
-    GOTO P16 ;187
-    GOTO P16 ;188
-    GOTO P16 ;189
-    GOTO P16 ;190
-    GOTO P16 ;191
-    GOTO P16 ;192
-    GOTO P17 ;193
-    GOTO P17 ;194
-    GOTO P17 ;195
-    GOTO P17 ;196
-    GOTO P17 ;197
-    GOTO P17 ;198
-    GOTO P17 ;199
-    GOTO P17 ;200
-    GOTO P17 ;201
-    GOTO P17 ;202
-    GOTO P17 ;203
-    GOTO P17 ;204
-    GOTO P18 ;205
-    GOTO P18 ;206
-    GOTO P18 ;207
-    GOTO P18 ;208
-    GOTO P18 ;209
-    GOTO P18 ;210
-    GOTO P18 ;211
-    GOTO P18 ;212
-    GOTO P18 ;213
-    GOTO P18 ;214
-    GOTO P18 ;215
-    GOTO P18 ;216
-    GOTO P19 ;217
-    GOTO P19 ;218
-    GOTO P19 ;219
-    GOTO P19 ;220
-    GOTO P19 ;221
-    GOTO P19 ;221
-    GOTO P19 ;223
-    GOTO P19 ;224
-    GOTO P19 ;225
-    GOTO P19 ;226
-    GOTO P19 ;227
-    GOTO P19 ;228
-    GOTO P20 ;229
-    GOTO P20 ;230
-    GOTO P20 ;231
-    GOTO P20 ;232
-    GOTO P20 ;233
-    GOTO P20 ;234
-    GOTO P20 ;235
-    GOTO P20 ;236
-    GOTO P20 ;237
-    GOTO P20 ;238
-    GOTO P20 ;239
-    GOTO P20 ;240
-    GOTO P21 ;241
-    GOTO P21 ;242
-    GOTO P21 ;243
-    GOTO P21 ;244
-    GOTO P21 ;245
-    GOTO P21 ;246
-    GOTO P21 ;247
-    GOTO P21 ;248
-    GOTO P21 ;249
-    GOTO P21 ;250
-    GOTO P21 ;251
-    GOTO P21 ;252
-    GOTO P21 ;253
-    GOTO P21 ;254
-    GOTO P21 ;255
-    GOTO P21 ;extra
+    GOTO P2 ;1
+    GOTO P2 ;2
+    GOTO P3 ;3
+    GOTO P4 ;4
+    GOTO P4 ;5
+    GOTO P5 ;6
+    GOTO P6 ;7
+    GOTO P6 ;8
+    GOTO P7 ;9
+    GOTO P8 ;10
+    GOTO P8 ;11
+    GOTO P9 ;12
+    GOTO P10 ;13
+    GOTO P10 ;14
+    GOTO P11 ;15
+    GOTO P12 ;16
+    GOTO P12 ;17
+    GOTO P13 ;18
+    GOTO P14 ;19
+    GOTO P14 ;20
+    GOTO P15 ;21
+    GOTO P16 ;22
+    GOTO P16 ;23
+    GOTO P17 ;24
+    GOTO P18 ;25
+    GOTO P18 ;26
+    GOTO P19 ;27
+    GOTO P20 ;28
+    GOTO P20 ;29
+    GOTO P21 ;30
+    GOTO P21 ;31
 
     P1:
     MOVLW 0x32 ;Decimal 50
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P2:
     MOVLW 0x3C ;Decimal 60
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P3:
     MOVLW 0x46 ;Decimal 70
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P4:
     MOVLW 0x50 ;Decimal 80
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P5:
     MOVLW 0x5A ;Decimal 90
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P6:
     MOVLW 0x64 ;Decimal 100
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P7:
     MOVLW 0x6E ;Decimal 110
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P8:
     MOVLW 0x78 ;Decimal 120
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P9:
     MOVLW 0x82 ;Decimal 130
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P10:
     MOVLW 0x8C ;Decimal 140
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P11:
     MOVLW 0x96 ;Decimal 150
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P12:
     MOVLW 0xA0 ;Decimal 160
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P13:
     MOVLW 0xAA ;Decimal 170
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P14:
     MOVLW 0xB4 ;Decimal 180
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P15:
     MOVLW 0xBE ;Decmial 190
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P16:
     MOVLW 0xC8 ;Decmial 200
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P17:
     MOVLW 0xD2 ;Decimal 210
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P18:
     MOVLW 0xDC ;Decimal 220
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P19:
     MOVLW 0xE6 ;Decimal 230
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P20:
-    MOVLW 0xF0 ;Decimal 240
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVLW 0xF2 ;Decimal 242
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     P21:
-    MOVLW 0xFA ;Decimal 250
-    MOVWF TIME
-    BSF PORTC,0
-    GOTO DELAY
+    MOVLW 0xFF ;Decimal 255
+    MOVWF TIME ;Set Delay value for desired Pulse Width
+    BSF PORTB,0 ;Set bit high for Servo's Pulse Width
+    GOTO DELAY ;GOTO line 371
 
     DELAY:
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    NOP
-    DECFSZ TIME
-    GOTO DELAY
-    GOTO INT_END
+    NOP ;No Operation
+    NOP ;No Operation
+    NOP ;No Operation
+    NOP ;No Operation
+    NOP ;No Operation
+    NOP ;No Operation
+    NOP ;No Operation
+    DECFSZ TIME ;Decrement "Time" register skip if 0
+    GOTO DELAY ;GOTO line 371
+    GOTO INT_END ;GOTO line 174
 
 END ;End OF Code. This Is Required

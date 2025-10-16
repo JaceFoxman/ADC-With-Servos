@@ -58,7 +58,7 @@ Start:
     BSF	    STATUS,5    ;Set RP0 to 1
     BSF	    STATUS,6    ;Set RP1 to 1
     MOVLW   0x01	;Move (0000|0001) to w
-    CLRF    ANSEL	;Enable Analog Input for AN0 
+    MOVWF   ANSEL	;Enable Analog Input for AN0 
     CLRF    ANSELH	;Disables Analog inputs for Higer level bits
     MOVLW   0x80	;move (1000|0000) to w
     MOVWF   OPTION_REG  ;Disable pull ups/ set timer 0 to WDT 1:1
@@ -183,22 +183,22 @@ Start:
     RETFIE		;Return from interupt, renable Global interrupts
 ;-------------------------------------------------------------------------------   
     BIT_3:
-    MOVLW   0x01	;Decimal 8
+    MOVLW   0x01	;Decimal 1
     ADDWF   ADC_SAVE	;ADD w to ADC_SAVE
     RETURN		;Return to line 157
     
     BIT_4:
-    MOVLW   0x02	;Decimal 16
+    MOVLW   0x02	;Decimal 2
     ADDWF   ADC_SAVE	;ADD w to ADC_SAVE
     RETURN		;Return to line 160
     
     BIT_5:
-    MOVLW   0x04	;Decimal 32
+    MOVLW   0x04	;Decimal 4
     ADDWF   ADC_SAVE	;ADD w to ADC_SAVE
     RETURN		;Return to line 163
     
     BIT_6:
-    MOVLW   0x08	;Decimal 64
+    MOVLW   0x08	;Decimal 8
     ADDWF   ADC_SAVE	;ADD w to ADC_SAVE
     RETURN		;Return to line 166
     
